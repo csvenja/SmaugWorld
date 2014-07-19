@@ -17,17 +17,22 @@
 /* Numbers indicate index in semaphore set for named semaphore */
 #define SEM_COWSINGROUP 0
 #define SEM_PCOWSINGROUP 1
-#define SEM_COWSWAITING 7
+#define SEM_SHEEPINGROUP 2
+#define SEM_PSHEEPINGROUP 3
+
+#define SEM_THIEVESWAITING 4
+#define SEM_HUNTERSWAITING 5
+#define SEM_COWSWAITING 6
+#define SEM_SHEEPWAITING 7
+
+#define SEM_PTHIEVESFOUGHT 8
+
+
 #define SEM_PCOWSEATEN 11
 #define SEM_COWSEATEN 12
-#define SEM_COWSDEAD 16
-
-#warning TODO_EDIT_NUMBER
-#define SEM_SHEEPINGROUP 0
-#define SEM_PSHEEPINGROUP 1
-#define SEM_SHEEPWAITING 7
-#define SEM_PSHEEPEATEN 11
-#define SEM_SHEEPEATEN 12
+#define SEM_COWSDEAD 13
+#define SEM_PSHEEPEATEN 14
+#define SEM_SHEEPEATEN 15
 #define SEM_SHEEPDEAD 16
 
 #define SEM_PTERMINATE 17
@@ -38,15 +43,12 @@
 
 /* System constants used to control simulation termination */
 #define MAX_SHEEP_EATEN 36
-#define MAX_SHEEP_CREATED 240
 #define MAX_COWS_EATEN 12
-#define MAX_COWS_CREATED 80
 #define MAX_HUNTERS_DEFEATED 48
 #define MAX_THIEVES_DEFEATED 36
 #define MAX_TREASURE_IN_HOARD 1000
 #define INITIAL_TREASURE_IN_HOARD 500
 
-#warning TODO_COWS_NUMBER_4_INITIAL
 /* System constants to specify size of groups of cows*/
 #define COWS_IN_GROUP 1
 #define SHEEP_IN_GROUP 3
@@ -144,6 +146,8 @@ void initialize();
 void smaug();
 void cow(int startTimeN);
 void sheep(int startTimeN);
+void thief(int startTimeN);
+void hunter(int startTimeN);
 void terminateSimulation();
 void releaseSemandMem();
 void semopChecked(int semaphoreID, struct sembuf *operation, unsigned something);
@@ -264,17 +268,12 @@ int main() {
 				printf("CRCRCRCRCRCRCRCRCRCRCRCR cow process not created \n");
 				continue;
 			}
-			if (cowsCreated == MAX_COWS_CREATED) {
-				printf("CRCRCRCRCRCRCRCRCRCRCRCR Exceeded maximum number of cows\n");
-				*terminateFlagp = 1;
-				break;
-			}
 		}
 
         /* Create a sheep process if needed */
 		/* The condition used to determine if a process is needed is */
 		/* if the last sheep created will be enchanted */
-		elapsedTime = timeChange(startTime);
+        elapsedTime = timeChange(startTime);
 		if (totalSheepInterval - elapsedTime < totalSheepInterval) {
 			nextInterval = (int)((double)rand() / RAND_MAX * maxSheepIntervalUsec);
 			totalCowInterval += nextInterval / 1000.0;
@@ -297,11 +296,6 @@ int main() {
 				printf("CRCRCRCRCRCRCRCRCRCRCRCR sheep process not created \n");
 				continue;
 			}
-			if (sheepCreated == MAX_COWS_CREATED) {
-				printf("CRCRCRCRCRCRCRCRCRCRCRCR Exceeded maximum number of sheep\n");
-				*terminateFlagp = 1;
-				break;
-			}
 		}
 
 		/* wait for processes that have exited so we do not accumulate zombie or cows */
@@ -319,7 +313,7 @@ int main() {
 		}
 
 		/* terminateFlagp is set to 1 (from initial value of 0) when any */
-		/* termination condition is satisfied (max sheep eaten ... ) */
+		/* termination condition is satisfied */
 		if (*terminateFlagp == 1)
 			break;
 
@@ -381,13 +375,8 @@ void smaug() {
 				printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug finished eating a sheep\n");
 			}
 			printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has finished a meal\n");
-			if (cowsEatenTotal >= MAX_COWS_EATEN) {
-				printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has eaten the allowed number of cows\n");
-				*terminateFlagp = 1;
-				break;
-			}
-            if (sheepEatenTotal >= MAX_SHEEP_EATEN) {
-				printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has eaten the allowed number of sheep\n");
+			if (cowsEatenTotal >= MAX_COWS_EATEN && sheepEatenTotal >= MAX_SHEEP_EATEN) {
+				printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has eaten the allowed number of sheep and cows\n");
 				*terminateFlagp = 1;
 				break;
 			}
@@ -546,7 +535,7 @@ void cow(int startTimeN) {
 	*cowCounterp = *cowCounterp + 1;
 	printf("CCCCCCC %8d CCCCCCC   %d  cows have been enchanted \n", localpid,
 				 *cowCounterp);
-	if ((*cowCounterp >= COWS_IN_GROUP)) {
+	if ((*cowCounterp >= COWS_IN_GROUP) && (*sheepCounterp >= SHEEP_IN_GROUP)) {
 		*cowCounterp = *cowCounterp - COWS_IN_GROUP;
 		for (k = 0; k < COWS_IN_GROUP; k++) {
 			semopChecked(semID, &WaitCowsInGroup, 1);
@@ -610,7 +599,7 @@ void sheep(int startTimeN) {
 	semopChecked(semID, &SignalSheepInGroup, 1);
 	*sheepCounterp = *sheepCounterp + 1;
 	printf("SSSSSSS %8d SSSSSSS   %d  sheep have been enchanted \n", localpid, *sheepCounterp);
-	if ((*sheepCounterp >= SHEEP_IN_GROUP)) {
+	if ((*cowCounterp >= COWS_IN_GROUP) && (*sheepCounterp >= SHEEP_IN_GROUP)) {
 		*sheepCounterp = *sheepCounterp - SHEEP_IN_GROUP;
 		for (k = 0; k < SHEEP_IN_GROUP; k++) {
 			semopChecked(semID, &WaitSheepInGroup, 1);
@@ -619,9 +608,7 @@ void sheep(int startTimeN) {
 		semopChecked(semID, &SignalProtectSheepInGroup, 1);
 		semopChecked(semID, &WaitProtectMealWaitingFlag, 1);
 		*mealWaitingFlagp = *mealWaitingFlagp + 1;
-#warning TODO_CHECK_IF_MEAL_READY
-		printf("SSSSSSS %8d SSSSSSS   signal meal flag %d\n", localpid,
-               *mealWaitingFlagp);
+		printf("SSSSSSS %8d SSSSSSS   signal meal flag %d\n", localpid, *mealWaitingFlagp);
 		semopChecked(semID, &SignalProtectMealWaitingFlag, 1);
 		semopChecked(semID, &SignalDragonSleeping, 1);
 		printf("SSSSSSS %8d SSSSSSS   last sheep  wakes the dragon \n", localpid);
@@ -650,7 +637,74 @@ void sheep(int startTimeN) {
 	}
 	semopChecked(semID, &WaitSheepDead, 1);
 
-	printf("SSSSSSS %8d SSSSSSS  sheep dies\n", localpid);
+	printf("SSSSSSS %8d SSSSSSS   sheep dies\n", localpid);
+}
+
+void thief(int startTimeN) {
+	int localpid;
+	//	int retval;
+	int k;
+	localpid = getpid();
+
+	/* graze */
+	printf("CCCCCCC %8d CCCCCCC   A cow is born\n", localpid);
+	if (startTimeN > 0) {
+		if (usleep(startTimeN) == -1) {
+			/* exit when usleep interrupted by kill signal */
+			if (errno == EINTR)
+				exit(4);
+		}
+	}
+	printf("CCCCCCC %8d CCCCCCC   cow grazes for %f ms\n", localpid,
+           startTimeN / 1000.0);
+
+	/* does this beast complete a group of BEASTS_IN_GROUP ? */
+	/* if so wake up the dragon */
+	semopChecked(semID, &WaitProtectCowsInGroup, 1);
+	semopChecked(semID, &SignalCowsInGroup, 1);
+	*cowCounterp = *cowCounterp + 1;
+	printf("CCCCCCC %8d CCCCCCC   %d  cows have been enchanted \n", localpid,
+           *cowCounterp);
+	if ((*cowCounterp >= COWS_IN_GROUP) && (*sheepCounterp >= SHEEP_IN_GROUP)) {
+		*cowCounterp = *cowCounterp - COWS_IN_GROUP;
+		for (k = 0; k < COWS_IN_GROUP; k++) {
+			semopChecked(semID, &WaitCowsInGroup, 1);
+		}
+		printf("CCCCCCC %8d CCCCCCC   The last cow is waiting\n", localpid);
+		semopChecked(semID, &SignalProtectCowsInGroup, 1);
+		semopChecked(semID, &WaitProtectMealWaitingFlag, 1);
+		*mealWaitingFlagp = *mealWaitingFlagp + 1;
+		printf("CCCCCCC %8d CCCCCCC   signal meal flag %d\n", localpid,
+               *mealWaitingFlagp);
+		semopChecked(semID, &SignalProtectMealWaitingFlag, 1);
+		semopChecked(semID, &SignalDragonSleeping, 1);
+		printf("CCCCCCC %8d CCCCCCC   last cow  wakes the dragon \n", localpid);
+	} else {
+		semopChecked(semID, &SignalProtectCowsInGroup, 1);
+	}
+
+	semopChecked(semID, &WaitCowsWaiting, 1);
+
+	/* have all the beasts in group been eaten? */
+	/* if so wake up the dragon */
+	semopChecked(semID, &WaitProtectCowsEaten, 1);
+	semopChecked(semID, &SignalCowsEaten, 1);
+	*cowsEatenCounterp = *cowsEatenCounterp + 1;
+	if ((*cowsEatenCounterp >= COWS_IN_GROUP)) {
+		*cowsEatenCounterp = *cowsEatenCounterp - COWS_IN_GROUP;
+		for (k = 0; k < COWS_IN_GROUP; k++) {
+			semopChecked(semID, &WaitCowsEaten, 1);
+		}
+		printf("CCCCCCC %8d CCCCCCC   The last cow has been eaten\n", localpid);
+		semopChecked(semID, &SignalProtectCowsEaten, 1);
+		semopChecked(semID, &SignalDragonEating, 1);
+	} else {
+		semopChecked(semID, &SignalProtectCowsEaten, 1);
+		printf("CCCCCCC %8d CCCCCCC   A cow is waiting to be eaten\n", localpid);
+	}
+	semopChecked(semID, &WaitCowsDead, 1);
+
+	printf("CCCCCCC %8d CCCCCCC   cow  dies\n", localpid);
 }
 
 void terminateSimulation() {
@@ -660,6 +714,7 @@ void terminateSimulation() {
 	int status;
 
 	localpid = getpid();
+    localpgid = getpgid(localpid);
 	printf("RELEASESEMAPHORES   Terminating Simulation from process %8d\n", localpgid);
 	if (cowProcessGID != (int)localpgid) {
 		if (killpg(cowProcessGID, SIGKILL) == -1 && errno == EPERM) {
