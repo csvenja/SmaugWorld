@@ -7,8 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D437ED881978F484008BB39E /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = D437ED871978F484008BB39E /* main.c */; };
-		D437ED8A1978F484008BB39E /* SmaugWorld.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = D437ED891978F484008BB39E /* SmaugWorld.1 */; };
+		D4034A3C197A26F6003B90E4 /* smaugProcessSample.c in Sources */ = {isa = PBXBuildFile; fileRef = D4034A3B197A26F6003B90E4 /* smaugProcessSample.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -18,16 +17,14 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				D437ED8A1978F484008BB39E /* SmaugWorld.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		D4034A3B197A26F6003B90E4 /* smaugProcessSample.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = smaugProcessSample.c; sourceTree = SOURCE_ROOT; };
 		D437ED841978F484008BB39E /* SmaugWorld */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = SmaugWorld; sourceTree = BUILT_PRODUCTS_DIR; };
-		D437ED871978F484008BB39E /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		D437ED891978F484008BB39E /* SmaugWorld.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = SmaugWorld.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,8 +57,7 @@
 		D437ED861978F484008BB39E /* SmaugWorld */ = {
 			isa = PBXGroup;
 			children = (
-				D437ED871978F484008BB39E /* main.c */,
-				D437ED891978F484008BB39E /* SmaugWorld.1 */,
+				D4034A3B197A26F6003B90E4 /* smaugProcessSample.c */,
 			);
 			path = SmaugWorld;
 			sourceTree = "<group>";
@@ -117,7 +113,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D437ED881978F484008BB39E /* main.c in Sources */,
+				D4034A3C197A26F6003B90E4 /* smaugProcessSample.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -227,6 +223,7 @@
 				D437ED8F1978F484008BB39E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
