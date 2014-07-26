@@ -188,7 +188,7 @@ int main() {
 	parentPID = getpid();
 	setpgid(parentPID, parentPID);
 	parentProcessGID = getpgid(0);
-	printf("CRCRCRCRCRCRCRCRCRCRCRCR  main process group  %d %d\n", parentPID, parentProcessGID);
+	printf("CRCRCRCRCRCRCRCRCRCR  main process group  %d %d\n", parentPID, parentProcessGID);
 
 	/* initialize semaphores and allocate shared memory */
 	initialize();
@@ -217,20 +217,20 @@ int main() {
 	gettimeofday(&startTime, NULL);
 
 	if ((smaugPID = fork()) == 0) {
-		printf("CRCRCRCRCRCRCRCRCRCRCRCR  Smaug is born\n");
+		printf("CRCRCRCRCRCRCRCRCRCRCRCR   Smaug is born\n");
 		smaug();
-		printf("CRCRCRCRCRCRCRCRCRCRCRCR  Smaug dies\n");
+		printf("CRCRCRCRCRCRCRCRCRCRCRCR   Smaug dies\n");
 		exit(0);
 	} else {
 		if (smaugProcessID == -1) {
 			smaugProcessID = smaugPID;
 		}
 		setpgid(smaugPID, smaugProcessID);
-		printf("CRCRCRCRCRCRCRCRCRCRCRCR  Smaug PID %8d PGID %8d\n", smaugPID,
+		printf("CRCRCRCRCRCRCRCRCRCRCRCR   Smaug PID %d PGID %d\n", smaugPID,
 					 smaugProcessID);
 	}
 
-	printf("CRCRCRCRCRCRCRCRCRCRCRCR  Smaug PID  create cow %8d \n", smaugPID);
+	printf("CRCRCRCRCRCRCRCRCRCRCRCR   Smaug PID create cow %d\n", smaugPID);
 	usleep(10);
 
 	while (TRUE) {
@@ -259,7 +259,7 @@ int main() {
 				cowsCreated++;
 				if (cowProcessGID == -1) {
 					cowProcessGID = cowPID;
-					printf("CRCRCRCRCR %8d  CRCRCRCRCR  cow PGID %8d \n", cowPID,
+					printf("CRCRCRC %8d RCRCRCR   cow PGID %8d \n", cowPID,
 								 cowProcessGID);
 				}
 				setpgid(cowPID, cowProcessGID);
@@ -288,12 +288,12 @@ int main() {
 				sheepCreated++;
 				if (sheepProcessGID == -1) {
 					sheepProcessGID = sheepPID;
-					printf("CRCRCRCRCR %8d  CRCRCRCRCR  sheep PGID %8d \n", sheepPID, sheepProcessGID);
+					printf("CRCRCRC %8d RCRCRCR   sheep PGID %8d\n", sheepPID, sheepProcessGID);
 				}
 				setpgid(sheepPID, sheepProcessGID);
-				printf("CRCRCRCRCRCRCRCRCRCRCRCR   NEW SHEEP CREATED %8d \n", sheepCreated);
+				printf("CRCRCRCRCRCRCRCRCRCRCRCR   NEW SHEEP CREATED %6d\n", sheepCreated);
 			} else {
-				printf("CRCRCRCRCRCRCRCRCRCRCRCR sheep process not created \n");
+				printf("CRCRCRCRCRCRCRCRCRCRCRCR sheep process not created\n");
 				continue;
 			}
 		}
@@ -507,7 +507,7 @@ void initialize() {
 	} else {
 		printf("!!INIT!!INIT!!INIT!!  shm attached for sheepEatenCounter\n");
 	}
-	printf("!!INIT!!INIT!!INIT!!   initialize end\n");
+	printf("!!INIT!!INIT!!INIT!!  initialize end\n");
 }
 
 void cow(int startTimeN) {
