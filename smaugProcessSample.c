@@ -89,6 +89,8 @@ int thiefCounter = 0;
 int smaugProcessID = -1;
 int cowProcessGID = -1;
 int sheepProcessGID = -1;
+int hunterProcessGID = -1;
+int thiefProcessGID = -1;
 int parentProcessGID = -1;
 
 /* Define the semaphore operations for each semaphore */
@@ -183,11 +185,15 @@ int main() {
 	int cowPID = 0;
     int sheepPID = 0;
 	int smaugPID = 0;
+    int hunterPID = 0;
+    int thiefPID = 0;
 
 	/* local counters, keep track of total number */
 	/* of processes of each type created */
 	int cowsCreated = 0;
     int sheepCreated = 0;
+    int hunterCreated = 0;
+    int thiefCreated = 0;
 
 	/* Variables to control the time between the arrivals */
 	/* of successive beasts*/
@@ -196,6 +202,8 @@ int main() {
 	int sleepingTime = 0;
 	int maxCowIntervalUsec = 0;
     int maxSheepIntervalUsec = 0;
+    int maxHunterIntervalUsec = 0;
+    int maxThiefIntervalUsec = 0;
 	int nextInterval = 0.0;
 	int status;
 	int w = 0;
@@ -203,8 +211,12 @@ int main() {
 	double totalCowInterval = 0.0;
     double maxSheepInterval = 0.0;
     double totalSheepInterval = 0.0;
+    double maxHunterInterval = 0.0;
+    double totalHunterInterval = 0.0;
+    double maxThiefInterval = 0.0;
+    double totalThiefInterval = 0.0;
 	double elapsedTime;
-	//	double hold;
+    int winProb = 0;
 
 	parentPID = getpid();
 	setpgid(parentPID, parentPID);
@@ -227,13 +239,26 @@ int main() {
 
 	printf("Please enter the maximum interval length for cow (ms)\n");
 	scanf("%lf", &maxCowInterval);
-    printf("max Cow interval time %f \n", maxCowInterval);
+    printf("max Cow interval time %f\n", maxCowInterval);
     maxCowIntervalUsec = (int)maxCowInterval * 1000;
 
     printf("Please enter the maximum interval length for sheep (ms)\n");
 	scanf("%lf", &maxSheepInterval);
-    printf("max Sheep interval time %f \n", maxSheepInterval);
+    printf("max Sheep interval time %f\n", maxSheepInterval);
     maxSheepIntervalUsec = (int)maxSheepInterval * 1000;
+
+    printf("Please enter the maximum interval length for hunter (ms)\n");
+    scanf("%lf", &maxHunterInterval);
+    printf("max Hunter interval time %f\n", maxHunterInterval);
+    maxHunterIntervalUsec = (int)maxHunterInterval * 1000;
+
+    printf("Please enter the maximum interval length for thief (ms)\n");
+    scanf("%lf", &maxThiefInterval);
+    printf("max Thief interval time %f\n", maxThiefInterval);
+    maxThiefIntervalUsec = (int)maxThiefInterval * 1000;
+
+    printf("Please enter the win prob for hunters and thieves (%%)\n");
+    scanf("%d", &winProb);
 
 	gettimeofday(&startTime, NULL);
 
@@ -262,11 +287,12 @@ int main() {
 		}
 		semopChecked(semID, &SignalProtectTerminate, 1);
 
+        elapsedTime = timeChange(startTime);
+
 		/* Create a cow process if needed */
 		/* The condition used to determine if a process is needed is */
 		/* if the last cow created will be enchanted */
-		elapsedTime = timeChange(startTime);
-		if (totalCowInterval - elapsedTime < totalCowInterval) {
+		if (elapsedTime > totalCowInterval) {
 			nextInterval = (int)((double)rand() / RAND_MAX * maxCowIntervalUsec);
 			totalCowInterval += nextInterval / 1000.0;
 			sleepingTime = (int)((double)rand() / RAND_MAX * maxCowIntervalUsec);
@@ -280,13 +306,13 @@ int main() {
 				cowsCreated++;
 				if (cowProcessGID == -1) {
 					cowProcessGID = cowPID;
-					printf("CRCRCRC %8d RCRCRCR   cow PGID %8d \n", cowPID,
+					printf("CRCRCRC %8d RCRCRCR   cow PGID %8d\n", cowPID,
 								 cowProcessGID);
 				}
 				setpgid(cowPID, cowProcessGID);
-				printf("CRCRCRCRCRCRCRCRCRCRCRCR   NEW COW CREATED %8d \n", cowsCreated);
+				printf("CRCRCRCRCRCRCRCRCRCRCRCR   NEW COW CREATED %8d\n", cowsCreated);
 			} else {
-				printf("CRCRCRCRCRCRCRCRCRCRCRCR cow process not created \n");
+				printf("CRCRCRCRCRCRCRCRCRCRCRCR   cow process not created\n");
 				continue;
 			}
 		}
@@ -294,8 +320,7 @@ int main() {
         /* Create a sheep process if needed */
 		/* The condition used to determine if a process is needed is */
 		/* if the last sheep created will be enchanted */
-        elapsedTime = timeChange(startTime);
-		if (totalSheepInterval - elapsedTime < totalSheepInterval) {
+		if (elapsedTime > totalSheepInterval) {
 			nextInterval = (int)((double)rand() / RAND_MAX * maxSheepIntervalUsec);
 			totalCowInterval += nextInterval / 1000.0;
 			sleepingTime = (int)((double)rand() / RAND_MAX * maxSheepIntervalUsec);
@@ -314,10 +339,60 @@ int main() {
 				setpgid(sheepPID, sheepProcessGID);
 				printf("CRCRCRCRCRCRCRCRCRCRCRCR   NEW SHEEP CREATED %6d\n", sheepCreated);
 			} else {
-				printf("CRCRCRCRCRCRCRCRCRCRCRCR sheep process not created\n");
+				printf("CRCRCRCRCRCRCRCRCRCRCRCR   sheep process not created\n");
 				continue;
 			}
 		}
+
+        /* Create a hunter process if needed */
+        if (elapsedTime > totalHunterInterval) {
+            nextInterval = (int)((double)rand() / RAND_MAX * maxHunterInterval);
+            totalHunterInterval += nextInterval / 1000.0;
+            sleepingTime = (int)((double)rand() / RAND_MAX * maxHunterInterval);
+            if ((hunterPID = fork()) == 0) {
+                /* Child becomes a hunter */
+                elapsedTime = timeChange(startTime);
+                hunter(sleepingTime);
+                /* Child (hunter) quits after being consumed */
+                exit(0);
+            } else if (hunterPID > 0) {
+                hunterCreated++;
+                if (hunterProcessGID == -1) {
+                    hunterProcessGID = hunterPID;
+                    printf("CRCRCRC %8d RCRCRCR   hunter PGID %7d\n", hunterPID, hunterProcessGID);
+                }
+                setpgid(hunterPID, hunterProcessGID);
+                printf("CRCRCRCRCRCRCRCRCRCRCRCR   NEW HUNTER CREATED %6d\n", hunterCreated);
+            } else {
+                printf("CRCRCRCRCRCRCRCRCRCRCRCR   hunter process not created\n");
+                continue;
+            }
+        }
+
+        /* Create a thief process if needed */
+        if (elapsedTime > totalThiefInterval) {
+            nextInterval = (int)((double)rand() / RAND_MAX * maxThiefInterval);
+            totalThiefInterval += nextInterval / 1000.0;
+            sleepingTime = (int)((double)rand() / RAND_MAX * maxThiefInterval);
+            if ((thiefPID = fork()) == 0) {
+                /* Child becomes a thief */
+                elapsedTime = timeChange(startTime);
+                thief(sleepingTime);
+                /* Child (thief) quits after being consumed */
+                exit(0);
+            } else if (thiefPID > 0) {
+                thiefCreated++;
+                if (thiefProcessGID == -1) {
+                    thiefProcessGID = thiefPID;
+                    printf("CRCRCRC %8d RCRCRCR   thief PGID %8d\n", thiefPID, thiefProcessGID);
+                }
+                setpgid(thiefPID, thiefProcessGID);
+                printf("CRCRCRCRCRCRCRCRCRCRCRCR   NEW THIEF CREATED %6d\n", thiefCreated);
+            } else {
+                printf("CRCRCRCRCRCRCRCRCRCRCRCR   thief process not created\n");
+                continue;
+            }
+        }
 
 		/* wait for processes that have exited so we do not accumulate zombie or cows */
 		while ((w = waitpid(-1, &status, WNOHANG)) > 1) {
@@ -695,14 +770,36 @@ void sheep(int startTimeN) {
 	printf("SSSSSSS %8d SSSSSSS   sheep dies\n", localpid);
 }
 
+void hunter(int startTimeN) {
+    int localpid;
+    localpid = getpid();
+
+    printf("HHHHHHH %8d HHHHHHH   A hunter has entered the valley\n", localpid);
+    if (startTimeN > 0) {
+        if (usleep(startTimeN) == -1) {
+            /* exit when usleep interrupted by kill signal */
+            if (errno == EINTR)
+                exit(4);
+        }
+    }
+
+    printf("HHHHHHH %8d HHHHHHH   hunter wants to play with smaug\n", localpid);
+    semopChecked(semID, &WaitProtectHunterCount, 1);
+    *hunterCounterp += 1;
+    semopChecked(semID, &SignalProtectHunterCount, 1);
+    semopChecked(semID, &SignalDragonSleeping, 1);
+    printf("HHHHHHH %8d HHHHHHH   hunter is wandering\n", localpid);
+    semopChecked(semID, &WaitHunterWandering, 1);
+    printf("HHHHHHH %8d HHHHHHH   hunter is playing with smaug\n", localpid);
+    semopChecked(semID, &WaitHunterFinished, 1);
+    printf("HHHHHHH %8d HHHHHHH   A hunter leaves\n", localpid);
+}
+
 void thief(int startTimeN) {
 	int localpid;
-	//	int retval;
-	int k;
 	localpid = getpid();
 
-	/* graze */
-	printf("CCCCCCC %8d CCCCCCC   A cow is born\n", localpid);
+	printf("TTTTTTT %8d TTTTTTT   A thief has entered the valley\n", localpid);
 	if (startTimeN > 0) {
 		if (usleep(startTimeN) == -1) {
 			/* exit when usleep interrupted by kill signal */
@@ -710,56 +807,17 @@ void thief(int startTimeN) {
 				exit(4);
 		}
 	}
-	printf("CCCCCCC %8d CCCCCCC   cow grazes for %f ms\n", localpid,
-           startTimeN / 1000.0);
 
-	/* does this beast complete a group of BEASTS_IN_GROUP ? */
-	/* if so wake up the dragon */
-	semopChecked(semID, &WaitProtectCowsInGroup, 1);
-	semopChecked(semID, &SignalCowsInGroup, 1);
-	*cowCounterp = *cowCounterp + 1;
-	printf("CCCCCCC %8d CCCCCCC   %d  cows have been enchanted \n", localpid,
-           *cowCounterp);
-	if ((*cowCounterp >= COWS_IN_GROUP) && (*sheepCounterp >= SHEEP_IN_GROUP)) {
-		*cowCounterp = *cowCounterp - COWS_IN_GROUP;
-		for (k = 0; k < COWS_IN_GROUP; k++) {
-			semopChecked(semID, &WaitCowsInGroup, 1);
-		}
-		printf("CCCCCCC %8d CCCCCCC   The last cow is waiting\n", localpid);
-		semopChecked(semID, &SignalProtectCowsInGroup, 1);
-		semopChecked(semID, &WaitProtectMealWaitingFlag, 1);
-		*mealWaitingFlagp = *mealWaitingFlagp + 1;
-		printf("CCCCCCC %8d CCCCCCC   signal meal flag %d\n", localpid,
-               *mealWaitingFlagp);
-		semopChecked(semID, &SignalProtectMealWaitingFlag, 1);
-		semopChecked(semID, &SignalDragonSleeping, 1);
-		printf("CCCCCCC %8d CCCCCCC   last cow  wakes the dragon \n", localpid);
-	} else {
-		semopChecked(semID, &SignalProtectCowsInGroup, 1);
-	}
-
-	semopChecked(semID, &WaitCowsWaiting, 1);
-
-	/* have all the beasts in group been eaten? */
-	/* if so wake up the dragon */
-	semopChecked(semID, &WaitProtectCowsEaten, 1);
-	semopChecked(semID, &SignalCowsEaten, 1);
-	*cowsEatenCounterp = *cowsEatenCounterp + 1;
-	if ((*cowsEatenCounterp >= COWS_IN_GROUP)) {
-		*cowsEatenCounterp = *cowsEatenCounterp - COWS_IN_GROUP;
-		for (k = 0; k < COWS_IN_GROUP; k++) {
-			semopChecked(semID, &WaitCowsEaten, 1);
-		}
-		printf("CCCCCCC %8d CCCCCCC   The last cow has been eaten\n", localpid);
-		semopChecked(semID, &SignalProtectCowsEaten, 1);
-		semopChecked(semID, &SignalDragonEating, 1);
-	} else {
-		semopChecked(semID, &SignalProtectCowsEaten, 1);
-		printf("CCCCCCC %8d CCCCCCC   A cow is waiting to be eaten\n", localpid);
-	}
-	semopChecked(semID, &WaitCowsDead, 1);
-
-	printf("CCCCCCC %8d CCCCCCC   cow  dies\n", localpid);
+    printf("TTTTTTT %8d TTTTTTT   thief wants to play with smaug\n", localpid);
+    semopChecked(semID, &WaitProtectThiefCount, 1);
+    *thiefCounterp += 1;
+    semopChecked(semID, &SignalProtectThiefCount, 1);
+    semopChecked(semID, &SignalDragonSleeping, 1);
+    printf("TTTTTTT %8d TTTTTTT   thief is wandering\n", localpid);
+    semopChecked(semID, &WaitThiefWandering, 1);
+    printf("TTTTTTT %8d TTTTTTT   thief is playing with smaug\n", localpid);
+    semopChecked(semID, &WaitThiefFinished, 1);
+	printf("TTTTTTT %8d TTTTTTT   A thief leaves\n", localpid);
 }
 
 void terminateSimulation() {
