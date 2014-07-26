@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <curses.h>
 #include <time.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -12,6 +11,8 @@
 #include <sys/shm.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+
+#define TRUE 1
 
 /* Define semaphores to be placed in a single semaphore set */
 /* Numbers indicate index in semaphore set for named semaphore */
@@ -64,12 +65,12 @@ int numHuntersDefeated = 0;
 int numThievesDefeated = 0;
 int smaugJewels = 500;
 
-union semun seminfo;
-//{
-//	int val;
-//	struct semid_ds *buf;
-//	ushort *array;
-//} seminfo;
+//union semun seminfo;
+union semun {
+    int val;
+    struct semid_ds *buf;
+    ushort *array;
+} seminfo;
 
 struct timeval startTime;
 
@@ -450,6 +451,7 @@ void smaug() {
 	while (TRUE) {
         semopChecked(semID, &WaitProtectThiefCount, 1);
         semopChecked(semID, &WaitProtectHunterCount, 1);
+        printf("SMAUGSMAUGSMAUGSMAUGSMAUSMAUGSMAUGSMAUGSMAUGSMAUSMAUGSMAUGSMAUGSMAUGSMAUSMAUGSMAUGSMAUGSMAUGSMAUSMAUGSMAUGSMAUGSMAUGSMAUSMAUGSMAUGSMAUGSMAUGSMAU");
         while (*hunterCounterp + *thiefCounterp > 0) {
             semopChecked(semID, &SignalProtectHunterCount, 1);
 
@@ -467,7 +469,7 @@ void smaug() {
                     printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has lost some treasure he now has %d jewels\n", smaugJewels);
                 }
                 else {
-                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   A thief has been defeated\n");
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   A thief has been defeated (total: %d)\n", numThievesDefeated);
                     numThievesDefeated += 1;
                     smaugJewels += 20;
                     printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has added to his treasure he now has %d jewels\n", smaugJewels);
@@ -511,7 +513,7 @@ void smaug() {
                     printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has lost some treasure he now has %d jewels\n", smaugJewels);
                 }
                 else {
-                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   A hunter has been defeated\n");
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   A hunter has been defeated (total: %d)\n", numHuntersDefeated);
                     numThievesDefeated += 1;
                     smaugJewels += 5;
                     printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has added to his treasure he now has %d jewels\n", smaugJewels);
@@ -812,6 +814,7 @@ void cow(int startTimeN) {
 	semopChecked(semID, &WaitCowsDead, 1);
 
 	printf("CCCCCCC %8d CCCCCCC   cow  dies\n", localpid);
+    kill(localpid, SIGKILL);
 }
 
 void sheep(int startTimeN) {
@@ -875,6 +878,7 @@ void sheep(int startTimeN) {
 	semopChecked(semID, &WaitSheepDead, 1);
 
 	printf("SSSSSSS %8d SSSSSSS   sheep dies\n", localpid);
+    kill(localpid, SIGKILL);
 }
 
 void hunter(int startTimeN) {
@@ -900,6 +904,7 @@ void hunter(int startTimeN) {
     printf("HHHHHHH %8d HHHHHHH   hunter is playing with smaug\n", localpid);
     semopChecked(semID, &WaitHunterFinished, 1);
     printf("HHHHHHH %8d HHHHHHH   A hunter leaves\n", localpid);
+    kill(localpid, SIGKILL);
 }
 
 void thief(int startTimeN) {
@@ -925,6 +930,7 @@ void thief(int startTimeN) {
     printf("TTTTTTT %8d TTTTTTT   thief is playing with smaug\n", localpid);
     semopChecked(semID, &WaitThiefFinished, 1);
 	printf("TTTTTTT %8d TTTTTTT   A thief leaves\n", localpid);
+    kill(localpid, SIGKILL);
 }
 
 void terminateSimulation() {
