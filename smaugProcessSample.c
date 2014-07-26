@@ -58,6 +58,12 @@
 /* CREATING YOUR SEMAPHORES */
 int semID;
 
+/* GLOBAL */
+int winProb = 0;
+int numHuntersDefeated = 0;
+int numThievesDefeated = 0;
+int smaugJewels = 500;
+
 union semun seminfo;
 //{
 //	int val;
@@ -216,7 +222,6 @@ int main() {
     double maxThiefInterval = 0.0;
     double totalThiefInterval = 0.0;
 	double elapsedTime;
-    int winProb = 0;
 
 	parentPID = getpid();
 	setpgid(parentPID, parentPID);
@@ -443,6 +448,108 @@ void smaug() {
 	semopChecked(semID, &WaitDragonSleeping, 1);
 	printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has woken up \n");
 	while (TRUE) {
+        semopChecked(semID, &WaitProtectThiefCount, 1);
+        semopChecked(semID, &WaitProtectHunterCount, 1);
+        while (*hunterCounterp + *thiefCounterp > 0) {
+            semopChecked(semID, &SignalProtectHunterCount, 1);
+
+            if (*thiefCounterp > 0) {
+                *thiefCounterp -= 1;
+                semopChecked(semID, &SignalProtectThiefCount, 1);
+
+                semopChecked(semID, &SignalThiefWandering, 1);
+                printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug is playing with a thief\n");
+
+                int thiefWin = rand() % 100 < winProb;
+                if (thiefWin) {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   A thief receives jewels\n");
+                    smaugJewels -= 8;
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has lost some treasure he now has %d jewels\n", smaugJewels);
+                }
+                else {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   A thief has been defeated\n");
+                    numThievesDefeated += 1;
+                    smaugJewels += 20;
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has added to his treasure he now has %d jewels\n", smaugJewels);
+                }
+
+                semopChecked(semID, &SignalThiefFinished, 1);
+                printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has finished a game (1 thief process/thread has been terminated)\n");
+
+                if (numThievesDefeated >= 36) {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has defeated 36 thieves\n");
+                    *terminateFlagp = 1;
+                    break;
+                }
+                if (smaugJewels <= 0) {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has no more treasure\n");
+                    *terminateFlagp = 1;
+                    break;
+                }
+                if (smaugJewels >= 1000) {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has more than 1000 jewels (now %d)\n", smaugJewels);
+                    *terminateFlagp = 1;
+                    break;
+                }
+            }
+            else {
+                semopChecked(semID, &SignalProtectThiefCount, 1);
+            }
+
+            semopChecked(semID, &WaitProtectHunterCount, 1);
+            if (*hunterCounterp > 0) {
+                *hunterCounterp -= 1;
+                semopChecked(semID, &SignalProtectHunterCount, 1);
+
+                semopChecked(semID, &SignalHunterWandering, 1);
+                printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug is playing with a hunter\n");
+
+                int hunterWin = rand() % 100 < winProb;
+                if (hunterWin) {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   A hunter receives jewels\n");
+                    smaugJewels -= 10;
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has lost some treasure he now has %d jewels\n", smaugJewels);
+                }
+                else {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   A hunter has been defeated\n");
+                    numThievesDefeated += 1;
+                    smaugJewels += 5;
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has added to his treasure he now has %d jewels\n", smaugJewels);
+                }
+
+                semopChecked(semID, &SignalHunterFinished, 1);
+                printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has finished a battle (1 hunter process/thread has been terminated)\n");
+
+                if (numHuntersDefeated >= 48) {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has defeated 48 treasure hunters\n");
+                    *terminateFlagp = 1;
+                    break;
+                }
+                if (smaugJewels <= 0) {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has no more treasure\n");
+                    *terminateFlagp = 1;
+                    break;
+                }
+                if (smaugJewels >= 1000) {
+                    printf("SMAUGSMAUGSMAUGSMAUGSMAU   Smaug has more than 1000 jewels (now %d)\n", smaugJewels);
+                    *terminateFlagp = 1;
+                    break;
+                }
+            }
+            else {
+                semopChecked(semID, &SignalProtectHunterCount, 1);
+            }
+
+            if (*terminateFlagp == 1) {
+                break;
+            }
+
+            semopChecked(semID, &WaitProtectThiefCount, 1);
+            semopChecked(semID, &WaitProtectHunterCount, 1);
+        }
+        semopChecked(semID, &SignalProtectThiefCount, 1);
+        semopChecked(semID, &SignalProtectHunterCount, 1);
+
 		semopChecked(semID, &WaitProtectMealWaitingFlag, 1);
 		while (*mealWaitingFlagp >= 1) {
 			*mealWaitingFlagp = *mealWaitingFlagp - 1;
